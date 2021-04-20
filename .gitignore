@@ -1,0 +1,8 @@
+AudioTest/
+Debug/
+Release/
+*.vcxproj
+*.vcxproj.*
+*.sln
+.vs/
+*.dll
