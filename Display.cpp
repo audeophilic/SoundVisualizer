@@ -1,5 +1,8 @@
 #include "Display.h"
 #include <cmath>
+#include <string>
+#include <iomanip>
+#include <sstream>
 #include <iostream>
 #include "PixelColors.h"
 using namespace std;
@@ -11,11 +14,18 @@ Display::~Display() {
 	if (renderer) SDL_DestroyRenderer(renderer);
 	if (texture) SDL_DestroyTexture(texture);
 	if (imagetexture) SDL_DestroyTexture(imagetexture);
+	TTF_Quit();
 	SDL_Quit();
 }
 
 void Display::init() {
+	//Init the display
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) throw DispErrorType::ERR_INIT_VIDEO;
+
+	//Load a font for labeling
+	TTF_Init();
+	font = TTF_OpenFont("./resources/LemonMilk.otf", 100); //this opens a font style and sets a size
+	if (!font) throw DispErrorType::ERR_INIT_FONT;
 }
 
 void Display::createWindow(const char* title, int pos_x, int pos_y, int w, int h, uint32_t flags) {
@@ -71,16 +81,26 @@ void Display::createGridOverlay(int fs, int N) {
 	double f_res = (double)fs / (double)N;
 
 	int delta = 0;
-
+	unsigned char counter = 0;
 	do {
 		
 		delta = line_frequency/f_res;
+
+		// Create the string to display on the line
+		string label = "A";
+		label.push_back('0' + counter);
+
+		std::ostringstream ss;
+		ss << fixed << setprecision(1) << line_frequency;
+		string freq = ss.str();
+
+		label = label + " (" + freq + " Hz)";
+
+		gridLines.push_back({ label, windowHeight - delta });
+
 		line_frequency *= 2;
-
-		gridLines.push_back({ 0, windowWidth, windowHeight - delta, windowHeight - delta });
-		//cout << "PUSHING k = " << delta << endl;
-
-	} while (2 * delta < windowHeight);
+		++counter;
+	} while (line_frequency < fs/2);
 }
 
 void Display::renderDisplay(double elapsedTime) {
@@ -89,6 +109,10 @@ void Display::renderDisplay(double elapsedTime) {
 	int w = 400;
 	int h = 400;
 	SDL_Rect image_rect = { 0, 0, w, h };
+
+	//A slightly transparent color for labels and lines
+	SDL_Color gridColor = { 255, 255, 255, 50 };  // this is the color in rgb format, maxing out all would give you the color white, and it will be your text's color
+
 
 	//Modulate the size of the image
 	double factor = max(1.0,1 - 0.05*sin(omega * elapsedTime));
@@ -116,11 +140,28 @@ void Display::renderDisplay(double elapsedTime) {
 	);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 
-	//Create gray grid lines
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 30);
+	//Render Grid Lines
+	SDL_SetRenderDrawColor(renderer, gridColor.r, gridColor.g, gridColor.b, gridColor.a);
 	for (auto& line : gridLines) {
-		SDL_RenderDrawLine(renderer,
-			line.x1, line.y1, line.x2, line.y2);
+		{
+			SDL_RenderDrawLine(renderer, 0, line.y, windowWidth, line.y);
+
+			SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, line.frequency.c_str(), gridColor); // as TTF_RenderText_Solid could only be used on SDL_Surface then you have to create the surface first
+
+			SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage); //now you can convert it into a texture
+
+			SDL_Rect Message_rect;
+			Message_rect.x = 20;
+			Message_rect.y = line.y;
+			Message_rect.w = 8 * line.frequency.size();
+			Message_rect.h = 10;
+
+			SDL_RenderCopy(renderer, Message, NULL, &Message_rect); //you put the renderer's name first, the Message, the crop size(you can ignore this if you don't want to dabble with cropping), and the rect which is the size and coordinate of your texture
+
+			//Don't forget to free your surface and texture
+			SDL_FreeSurface(surfaceMessage);
+			SDL_DestroyTexture(Message);
+		}
 	}
 
 	SDL_RenderPresent(renderer);

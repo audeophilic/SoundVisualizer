@@ -1,9 +1,12 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <vector>
+#include <string>
 #include <deque>
 using std::vector;
+using std::string;
 using std::deque;
 
 struct pixel {
@@ -14,7 +17,8 @@ struct pixel {
 };
 
 struct LineStruct {
-	int x1, x2, y1, y2;
+	string frequency;
+	int y;
 };
 
 class Display
@@ -27,6 +31,7 @@ private:
 	SDL_Surface* imageSurface = nullptr;
 	SDL_Texture* texture = nullptr;
 	SDL_Texture* imagetexture = nullptr;
+	TTF_Font* font = nullptr;
 
 	int windowWidth = 0, windowHeight = 0;
 
@@ -44,7 +49,7 @@ private:
 public:
 	enum class DispErrorType {
 		ERR_INIT_VIDEO, ERR_LOAD_IMAGE, ERR_CREATE_WINDOW,
-		ERR_CREATE_RENDERER, ERR_CREATE_TEXTURE
+		ERR_CREATE_RENDERER, ERR_CREATE_TEXTURE, ERR_INIT_FONT
 	};
 
 	~Display();

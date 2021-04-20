@@ -39,6 +39,9 @@ int main() {
     cout << "|        Audio Visualizer        |\n";
     cout << "|  A group project for EECS 351  |\n";
     cout << "|________________________________|\n\n";
+    cout << "Controls\n";
+    cout << "\tPause: Space Bar\n";
+    cout << "\tExit: ESCAPE Key\n\n";
     cout << "Please input the name of a valid .WAV file:\n# ";
 
     getline(cin, audio_filename);
@@ -99,7 +102,7 @@ void runVisualizer(string audio_filename) {
         WIDTH, HEIGHT,
         SDL_WINDOW_SHOWN);
     disp.createGridOverlay(audio.getSampleRate(), N);
-    disp.setBackgroundImage("background.png");
+    disp.setBackgroundImage("./resources/background.png");
     disp.setBPM(BPM);
 
     // A place to store events
@@ -119,7 +122,8 @@ void runVisualizer(string audio_filename) {
                 quitProgram = true;
                 break;
             case SDL_KEYDOWN:
-                if (ev.key.keysym.sym == SDLK_SPACE) {
+                switch (ev.key.keysym.sym) {
+                case SDLK_SPACE:
                     paused = !paused;
                     if (paused) {
                         player.pauseAudio();
@@ -130,6 +134,11 @@ void runVisualizer(string audio_filename) {
                         frametimer.resume();
                         //cout << "PAUSED FOR " << frametimer.pauseduration() << endl;
                     }
+                    break;
+                case SDLK_ESCAPE:
+                    quitProgram = true; //ESCAPE TO CLOSE PROGRAM
+                    break;
+
                 }
             }
         }
@@ -144,7 +153,7 @@ void runVisualizer(string audio_filename) {
             double elap = frametimer.elapsed();
             int frameIndex = (uint32_t)floor(elap * (double)audio.getSampleRate());
             int counter = 0;
-            for (int i = frameIndex - N; i < frameIndex; ++i) {
+            for (int i = frameIndex - N/2; i < frameIndex + N/2; ++i) {
                 if (i >= 0 && i < audio.getNumSamplesPerChannel()) sample.push_back(audio.samples[0][i]*hamming[counter]);
                 else sample.push_back(0);
                 ++counter;
@@ -198,6 +207,8 @@ void handleDisplayError(Display::DispErrorType ERR) {
     case Display::DispErrorType::ERR_CREATE_TEXTURE:
         cerr << "Error Creating Texture: ";
         break;
+    case Display::DispErrorType::ERR_INIT_FONT:
+        cerr << "Error Loading Font: ";
     }
     cout << SDL_GetError() << endl;
 }
